@@ -1,0 +1,114 @@
+---
+title: "GE hot and dry summer"
+author: "Duc-Quang Nguyen | Tribune de Genève | Tamedia"
+date: " 2018"
+output: 
+  html_document:
+    code_folding: hide
+    echo: TRUE
+    warning: FALSE
+    message: FALSE
+    toc: yes
+    toc_depth: 3
+    toc_float: true
+    theme: simplex
+---
+
+```{r setup, include=FALSE}
+cleanOutput <- F
+
+require(lintr)
+require(here)
+
+library(tidyverse)
+library(magrittr)
+library(stringr)
+library(knitr)
+library(tamMap)
+library(hrbrthemes)
+
+### Getting data in packages
+library(rvest)
+
+### Interactive 
+library(ggiraph)
+library(htmltools)
+library(swiRcharts)
+library(rCharts)
+library(highcharter)
+
+### Misc stuff
+#require(classInt)
+#require(viridis)
+```
+
+```{r data download}
+
+input.url <- 'https://www.meteosuisse.admin.ch/product/output/climate-data/homogenous-monthly-data-processing/data/homog_mo_GVE.txt'
+rawData.file <- paste0("data/", basename(input.url))
+download.file(input.url, rawData.file)  
+
+# Read each txt file and save it as CSV
+header <- read.table(rawData.file, skip = 27, stringsAsFactors = FALSE, nrows = 1) %>% unlist(use.names = F)
+table <- read.table(rawData.file, skip = 28, stringsAsFactors = FALSE)
+colnames(table) <- header
+#skim(table)
+```
+
+```{r EDA}
+stb <- table %>% filter(Month >= 4 & Month <= 7) %>% 
+  mutate(
+    period = ifelse(Year <= 1964, 'pre1964', 'after1964'),
+    period2 = ifelse(Year <= 2000, 'pre2000', 'after2000'),
+    ) 
+
+stb %>% 
+  ggplot() +
+  geom_density(aes(x = Temperature)) +
+  facet_grid(period~Month) +
+  theme_ipsum_tw()
+
+stb %>% 
+  ggplot() +
+  geom_density(aes(x = Temperature)) +
+  facet_wrap(~period) +
+  theme_ipsum_tw()
+
+stb %>% 
+  ggplot() +
+  geom_density(aes(x = Precipitation)) +
+  facet_wrap(~period) +
+  theme_ipsum_tw()
+
+
+stb <- table %>% filter(Month >= 4 & Month <= 7)
+stb %>% ggplot(aes(x = Year, y = Temperature)) +
+  geom_line() +
+  geom_smooth() +
+  facet_wrap(~Month)
+
+```
+
+
+```{r move production graphics}
+if (cleanOutput) {
+  files <- c("basename_.*html", "js")
+
+  if (!dir.exists("output/bak")) {
+    dir.create("output/bak")
+  } else {
+    list.files("output/bak/", full.names = T, recursive = T) %>% file.remove()
+  }
+  ori.files <- list.files("output", full.names = T)[list.files("output") != "bak"]
+  file.copy(ori.files, to = "output/bak/", recursive = T)
+  unlink(ori.files, recursive = T)
+
+  files_tomove <- lapply(files, function(x) list.files(pattern = x)) %>% unlist()
+  file.copy(files_tomove, "output", recursive = T)
+  unlink(files_tomove, recursive = T)
+}
+```
+
+```{r linting}
+lintr::lint(knitr::current_input())
+```

@@ -1,0 +1,308 @@
+---
+title: "Summer temperature GE deviation"
+author: "Duc-Quang Nguyen | Tribune de Genève | Tamedia"
+date: " 2018"
+output: 
+  html_document:
+    code_folding: hide
+    echo: TRUE
+    warning: FALSE
+    message: FALSE
+    toc: yes
+    toc_depth: 3
+    toc_float: true
+    theme: simplex
+---
+
+```{r setup, include=FALSE}
+cleanOutput <- F
+
+require(lintr)
+require(here)
+
+library(tidyverse)
+library(magrittr)
+library(stringr)
+library(knitr)
+library(tamMap)
+library(hrbrthemes)
+library(tamTheme)
+library(gganimate)
+### Getting data in packages
+
+library(ggalt)
+library(viridis)
+### Interactive 
+library(ggiraph)
+library(htmltools)
+library(highcharter)
+```
+
+```{r data load & wrangle}
+ # input.url <- 'https://www.meteosuisse.admin.ch/product/output/climate-data/homogenous-monthly-data-processing/data/homog_mo_GVE.txt'
+  # rawData.file <- paste0("data/", basename(input.url))
+  rawData.file <- paste0("data/", "Gve1753_2018_manual.txt")
+
+  # Read each txt file and save it as CSV
+  header <- read.table(rawData.file, skip = 9, 
+                       stringsAsFactors = FALSE, 
+                       nrows = 1) %>% 
+    unlist(use.names = F)
+  
+  table <- read.table(rawData.file, skip = 10, stringsAsFactors = FALSE)
+  colnames(table) <- header  
+  stopifnot(
+    all(table$STA == 58),
+    all(table$TG == 1),
+    all(table$HH == 0),
+    all(table$MM == 0)
+    )
+  table %<>% 
+    select(JAHR, MO, `1802`, `1649`) %>% 
+    rename(
+      Year = JAHR, 
+      Temperature = `1802`,
+      devNorme =  `1649`)
+
+months <- structure(1:12, 
+                    names = c('Jan.', 'Fév.',	'Mars',	'Avr.',	'Mai',	'Juin',	'Juil.',	'Août',	'Sept.',	'Oct.',	'Nov.',	'Déc.'))
+years_average <-  c(1981, 2010)
+
+table %<>% mutate(
+  Month = factor(names(months)[match(MO, months)], 
+                 levels = names(months)))
+
+yAverage <- table %>% 
+  group_by(Year) %>% 
+  summarise(yAverage = mean(Temperature)) %>% 
+  ungroup()
+
+table <- left_join(table,yAverage)
+
+ylim <- table %>% .$Temperature %>% range()
+```
+
+Voir ce [graphique](https://www.meteosuisse.admin.ch/home/climat/changement-climatique-suisse.html)
+
+```{r deviation from average}
+# deviation depuis la moyenne
+yAv <- table %>% 
+  select(Year, yAverage) %>% 
+  distinct()
+
+pAverage <- yAv %>% 
+  filter(Year >= 1961 & Year <= 1990) %>% 
+  summarise(pAverage = mean(yAverage)) %>% 
+  ungroup() %>% unlist(use.names = F)
+
+yAv %<>% mutate(
+  pAverage = pAverage,
+  devAverage = yAverage - pAverage
+)
+
+# same but summer only July and Aug
+summer_ja <- table %>% 
+  filter(Month %in% c('Juin', 'Juil.', 'Août')) %>% 
+  group_by(Year) %>% 
+  mutate(jjaAv = mean(Temperature)) %>% 
+  ungroup()
+
+spAverage <- summer_ja %>% 
+  filter(Year >= 1961 & Year <= 1990) %>% 
+  summarise(spAverage = mean(jjaAv)) %>% 
+  ungroup() %>% unlist(use.names = F)
+
+summer_ja %<>% 
+  select(-MO, -devNorme) %>% 
+  mutate(
+  spAverage = spAverage,
+  devAverage = jjaAv - spAverage,
+  pos = ifelse(devAverage >= 0, 1, -1),
+  colour = ifelse(pos == 1, "#c6266d", "#2a3589") 
+) %>% 
+  spread(key = Month, value = Temperature)
+
+yAv %>% 
+  ggplot(aes(x = Year, y = devAverage)) +
+  geom_col() +
+  theme_tam()
+
+summer_ja %>% 
+  ggplot(aes(x = Year, y = devAverage, fill = colour)) +
+  geom_col() +
+  theme_tam()
+  
+```
+
+```{r teaser heatmap, eval = T}
+  fontSize <- 30
+  
+  tiles <- yAv %>% 
+    filter(Year <  2018) %>% 
+  ggplot() +
+  geom_tile(aes(x = Year, y = 10, fill = devAverage)) +
+  theme_tam(base_size = fontSize) + 
+  theme(
+    axis.line.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank(),
+    legend.key.height = unit(fontSize / 3.5, "lines"),
+    legend.key.width = unit(1.2, "lines"),
+    legend.margin = unit(c(1,1,1,1), "lines"),
+    plot.margin = unit(c(-1, 
+                1, 1, 0.3), "lines")
+        ) + 
+  scale_x_continuous(
+    position = "top",
+    name = "", 
+    expand = c(0,0), breaks = scales::pretty_breaks(n = 16)
+    ) +
+  scale_y_continuous(expand = c(0,0)) +
+  scale_fill_gradient2(name = "Écart",
+     breaks = -2:2,
+     labels = paste0(c("-2", "-1", " 0", "+1", "+2"), "°C"),
+      low = "#1c5263", high = "#c91d34", mid = "#ffefff",
+      #low = tam_dpal[1], high = tam_dpal[13], mid = tam_dpal[7],
+      guide = guide_colourbar(title.hjust = 0, ticks.linewidth = 3))
+
+  jpeg("output/geneva_1753_2017_tiles.jpeg", width = 1600, height = 800, quality = 300)
+  print(tiles)
+  dev.off()
+  
+  ### Vertical version for mobile #######
+  tilesM <- yAv %>% 
+    filter(Year <  2018) %>% 
+  ggplot() +
+  geom_tile(aes(x = 10, y = Year, fill = devAverage)) +
+  theme_tam(base_size = fontSize * 1.2) + 
+  theme(
+    axis.line.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    legend.position = "top",
+    legend.margin = unit(c(3,1,-8,1), "lines"),
+    legend.key.width = unit(fontSize / 3.8, "lines"),
+    legend.key.height= unit(1.3, "lines"),
+    plot.margin = unit(c(2, 
+                0.6, 0.3, -1.2), "lines")
+        ) + 
+  scale_y_continuous(
+    trans = "reverse",
+    position = "left",
+    name = "", 
+    expand = c(0,0), breaks = scales::pretty_breaks(n = 16)
+    ) +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_fill_gradient2(name = "Écart",
+     breaks = -2:2,
+     labels = paste0(c("-2", "-1", " 0", "+1", "+2"), "°C"),
+      low = "#1c5263", high = "#c91d34", mid = "#ffefff",
+      guide = guide_colourbar(title.vjust = 1, ticks.linewidth = 3))
+    
+  jpeg("output/geneva_1753_2017_tilesM.jpeg", width = 800, height = 1200, quality = 400)
+  print(tilesM)
+  dev.off()
+  
+  
+  # labs(
+  #   title = "Températures à Genève de 1753 à 2018,\nvoyez-vous une tendance?",
+  #   subtitle = "Ecarts des températures annuelles de Genève avec la moyenne 1961-1990"
+  #   )
+```
+
+```{r prod plot}
+summer_jaja <- summer_ja %>% 
+  mutate(tp = 
+    paste0(
+      "<b>", Year, "</b><br>Ecart: <b>", 
+      ifelse(devAverage > 0, "+", ""), round(devAverage, 2), 
+      "</b> °C en juin-août<br>par rapport à 1961-1990<br><br>",
+      "- juin: ", Juin, "°C <br>",
+      "- juillet: ", `Juil.`, "°C <br>",
+      "- août: ", Août, "°C<br>"
+          )
+      )     
+
+hh <- hchart(
+  summer_jaja, "column", 
+  hcaes(x = Year, y = devAverage, color = colour, tp = tp)
+) %>% 
+  hc_chart(
+    animation = list(duration = 2000),
+    height = 450
+  ) %>%
+  hc_yAxis(
+    minPadding = 0,
+    maxPadding = 0,
+    min = -2,
+    max = 5.5,
+    title = list(text = ""),
+    labels = list(format = "{value} °C")
+    ) %>% 
+  hc_xAxis(
+    title = "",
+    opposite = T,
+    maxPadding = 0,
+    minPadding = 0
+  ) %>% 
+  hc_plotOptions(series = list(
+    pointPadding = 0, groupPadding = 0)) %>% 
+  hc_add_theme(hc_theme_tg) %>% 
+  hc_legend(enabled = F) %>% 
+  hc_tooltip(
+      hideDelay = 10, formatter = JS("function() { return this.point.tp; }"), 
+      useHTML = T, borderWidth = 1, 
+      backgroundColor = 'rgba(255,255,255,1)', 
+      padding = 5,
+      style = list(
+        fontWeight = 300,
+        fontSize = "0.6em"
+      )
+  )
+
+subtitle_text <- "❝ Les fluctuations de températures d'année en année étaient principalement naturelles. La hausse des températures des dernières décennies, ne peuvent s'expliquer que par l'augmentation des émissions de gaz à effet de serre (changement climatique) ❞ MétéoSuise" 
+      
+save_html(
+  tags$html(
+      tags$head(
+        includeCSS(style_tam_highcharter()), 
+        HTML(dimensionWatcher)
+        ),
+      tags$body(
+        h2(HTML("Ce n'est pas qu'une impression, il fait toujours plus chaud en été à Genève")),
+        div(class = "descr", HTML(paste0(
+          "Écarts de la température moyenne juin-août avec la moyenne de 1961-1990, chaque année de 1753 à 2018", 
+         '&nbsp;<img class="blink-image" src="https://www.tdg.ch/extern/interactive_wch/tdg/assets/hand_interactive.png" width="30" align="top"> '
+        ))),
+          # h3(HTML("Durant les trente dernières années, les étés à Genève sont systématiquement plus chauds.")),
+        div(class = "graphic", hh),
+        div(id = "cite", HTML("source: MétéoSuisse"))
+    )), 
+    file = "summerTemperatureDeviation_GE.html", libdir = "js")
+   
+```
+
+```{r move production graphics}
+if (cleanOutput) {
+  files <- c("basename_.*html", "js")
+
+  if (!dir.exists("output/bak")) {
+    dir.create("output/bak")
+  } else {
+    list.files("output/bak/", full.names = T, recursive = T) %>% file.remove()
+  }
+  ori.files <- list.files("output", full.names = T)[list.files("output") != "bak"]
+  file.copy(ori.files, to = "output/bak/", recursive = T)
+  unlink(ori.files, recursive = T)
+
+  files_tomove <- lapply(files, function(x) list.files(pattern = x)) %>% unlist()
+  file.copy(files_tomove, "output", recursive = T)
+  unlink(files_tomove, recursive = T)
+}
+```
+
+```{r linting}
+lintr::lint(knitr::current_input())
+```

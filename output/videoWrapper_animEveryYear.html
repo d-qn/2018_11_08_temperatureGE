@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+
+    <link rel="stylesheet" href="videoWrapper.css" type="text/css" media="screen"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <script src="https://files.newsnetz.ch/scripts/dimension_watcher.js"></script>
+    <script>
+    DimensionWatcher.enableParentNotification(
+      function() {
+        return "100%"
+      },
+      function() {
+        return document.body.scrollHeight
+      }
+    );
+    </script>
+  </head>
+
+<body>
+
+
+<h3>Le lent inéxorable réchauffement de Genève</h3>
+<div class="descr">
+Températures mensuelles de 1864 à septembre 2018 à Genève. Chaque année est représentée par une courbe.
+</div>
+
+  <video loop autoplay muted playsinline controlsList = "nodownload">
+    <!-- <source src="https://cfpodcast.newsnetz.tv/podcast/news/355257h.mp4" type="video/mp4"> -->
+      <source src="anim_EveryYear_GE.mp4" type="video/mp4">
+  </video>
+
+<div id="cite">
+  Source: MétéoSuisse | Tribune de Genève
+</div>
+    <br><br>
+</body></html>

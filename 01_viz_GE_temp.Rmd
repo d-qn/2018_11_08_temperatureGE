@@ -1,0 +1,437 @@
+---
+title: "Genève chauffe? 154 années de données climatiques en graphiques"
+author: "Duc-Quang Nguyen | Tribune de Genève | Tamedia"
+date: " 2018"
+output: 
+  html_document:
+    code_folding: hide
+    echo: TRUE
+    warning: FALSE
+    message: FALSE
+    toc: yes
+    toc_depth: 3
+    toc_float: true
+    theme: simplex
+---
+## Snippets
+
+>MétéoSuisse a enregistré le sixième mois de juillet le plus chaud depuis le début des mesures en 1864. [meteosuisse](https://www.meteosuisse.admin.ch/home/actualite/infos.subpage.html/fr/data/news/2018/7/canicule-le-temps-tres-chaud-et-lourd-se-poursuit.html)
+
+## Related
+
+* [538 global warming](https://fivethirtyeight.com/features/its-so-freaking-hot-now-what/)
+* [DE](https://interaktiv.waz.de/rekordsommer-2018/)
+* [SWI](https://www.swissinfo.ch/eng/business/just-how-hot-_explore-150-years-of-global-warming-data-in-switzerland/43279510)
+* [Bloomberg](https://www.bloomberg.com/graphics/hottest-year-on-record/)
+
+```{r setup, include=FALSE}
+download_meteoSuisseData <- F
+cleanOutput <- F
+
+generateVidAllYears <- T
+generateVidShift <- T
+
+require(lintr)
+require(here)
+
+library(tidyverse)
+library(magrittr)
+library(stringr)
+library(knitr)
+library(hrbrthemes)
+library(tamMap)
+library(tamTheme)
+library(gganimate)
+### Getting data in packages
+
+library(ggalt)
+library(viridis)
+```
+
+```{r data download}
+  # input.url <- 'https://www.meteosuisse.admin.ch/product/output/climate-data/homogenous-monthly-data-processing/data/homog_mo_GVE.txt'
+  # rawData.file <- paste0("data/", basename(input.url))
+  rawData.file <- paste0("data/", "Gve1753_2018_manual.txt")
+if(download_meteoSuisseData) {
+  download.file(input.url, destfile = rawData.file)  
+}
+  # Read each txt file and save it as CSV
+  header <- read.table(rawData.file, skip = 9, 
+                       stringsAsFactors = FALSE, 
+                       nrows = 1) %>% 
+    unlist(use.names = F)
+  
+  table <- read.table(rawData.file, skip = 10, stringsAsFactors = FALSE)
+  colnames(table) <- header  
+  stopifnot(
+    all(table$STA == 58),
+    all(table$TG == 1),
+    all(table$HH == 0),
+    all(table$MM == 0)
+    )
+  table %<>% 
+    select(JAHR, MO, `1802`, `1649`) %>% 
+    rename(
+      Year = JAHR, 
+      Temperature = `1802`,
+      devNorme =  `1649`)
+  
+#skim(table)
+```
+
+```{r wrangle}
+months <- structure(1:12, 
+                    names = c('Jan.', 'Fév.',	'Mars',	'Avr.',	'Mai',	'Juin',	
+                              'Juil.',	'Août',	'Sept.',	'Oct.',	'Nov.',	'Déc.'))
+years_average <-  c(1981, 2010)
+
+table %<>% mutate(
+  Month = factor(names(months)[match(MO, months)], 
+                 levels = names(months)))
+
+yAverage <- table %>% 
+  group_by(Year) %>% 
+  summarise(yAverage = mean(Temperature)) %>% 
+  ungroup()
+
+table <- left_join(table,yAverage)
+
+ylim <- table %>% .$Temperature %>% range()
+```
+
+```{r helper viz}
+bg_chart <- function(base_size = 22) {
+  ggplot() +
+    geom_hline(yintercept = 0, colour = "darkgrey", alpha = 0.6, size = 0.7) + 
+  scale_x_discrete(name = "", position = "top", expand = c(0.02, 0.1)) +
+  scale_y_continuous(
+    name = "", expand = c(0.03, 0), 
+    labels = function(x) paste0(x,'°'), limits = ylim, 
+    breaks = scales::pretty_breaks(n = 5)
+  ) +
+  theme_tam(grid = 'X', base_size = base_size) +
+  theme(
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y =  element_line(
+      color = "#c2c4d6", linetype = "dotted", size = 1.5),
+    plot.margin = margin(-6, 3, 0, -2, "pt"),
+    axis.line = element_blank()
+  )
+  #scale_colour_gradientn(colours = brewer.pal(7,"Reds"))
+}
+```
+
+```{r viz, eval = F}
+bg_chart () + 
+    geom_xspline(data = table %>% filter(Year < 2018),
+                 aes(x = Month, y = Temperature, group = Year, colour = Year), size = 0.1) +
+      geom_xspline(data = table %>% filter(Year == 2018),
+                 aes(x = Month, y = Temperature, group = Year, colour = Year), size = 1)
+```
+
+
+
+```{r whole animation}
+if(generateVidAllYears) {
+  dev <- F
+  
+  animationSpeed <- 0.1
+  referencePeriod <- c(1961, 1990)
+  
+  annot_colour <- tam_pal[2] #"#755764" #
+  annotext_colour <- '#737373'
+  fontSize <- 35 #50 
+  syear <- 2010
+  outfile <- if(dev) "dev_lastYears_GE.mp4" else "anim_EveryYear_GE.mp4"
+  
+  annot_coords <- tibble(
+    year =  c(2003, 2003,        2006, 2015, 2018),
+    month = c('Juin', 'Août', 'Juil.', 'Juil.', 'Jan.')
+  )
+
+  annot_text <- tibble(
+    year = c(2003, 2006, 2015, 2016, 2017, 2018),
+    duration = c(6 / animationSpeed, 3 / animationSpeed, 
+                 4 / animationSpeed, 2/animationSpeed,  2/animationSpeed, 
+                 4 / animationSpeed),
+    x = 0.7, 
+    y = 24,
+    label = c(
+      "Genève 2003: records de température moyenne pour les mois de juin et août (23.7 & 23.6 °C). La canicule cause 975 morts en Suisse, 70'000 à travers l'Europe.",
+      "Genève 2006: nouveau record de température moyenne pour le mois de juillet, 23.7°C.",
+      "Genève 2015: nouveau record de température pour le mois de juillet, 24.2 °C et record de température enregistrée: 39.7°C.",
+      "Au niveau mondial, 2015, 2016 et 2017 représentent les années les plus chaudes jamais enregistrées.",
+      "Au niveau mondial, 2015, 2016 et 2017 représentent les années les plus chaudes jamais enregistrées.",
+      "Genève 2018: records de température moyenne pour le mois de janvier, 6.0 °C et pour la période d'avril à juillet."
+    )
+  )
+annot_text$label <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 33), sep="", collapse="\n"))
+  
+  mAverageByP <- table %>% 
+    filter(Year >= referencePeriod[1] & Year <= referencePeriod[2]) %>% 
+    group_by(Month) %>% 
+    summarise(monthlyAv = mean(Temperature))  %>% 
+    ungroup()
+  
+  col.brk <- seq(
+    min(table$yAverage, na.rm = T) - 0.001, 
+    max(table$yAverage, na.rm = T) + 0.001, 
+    length.out = length(unique(table$Year)))
+  colours <- viridis_pal(option = "A", direction = -1)(length(col.brk))
+  
+  dff <- table %>% 
+    mutate(
+    # add the last colour for NA y.average, unfinished years
+    colour = colours[as.numeric(cut(yAverage, breaks = col.brk))]
+  ) %>% 
+    # remove years
+    filter(Year >= 1864)
+  
+  yearLabel <- dff %>% 
+    select(Year, yAverage, colour) %>% 
+    distinct() %>% 
+    mutate(
+      x = 7.15, 
+      y = 9
+    )
+  
+  moyenneMLabel <- cbind(
+    tibble(
+      x = 6, y = 3, 
+      label = paste0(
+        "moyenne ", referencePeriod[1], "-", referencePeriod[2])),
+    mAverageByP %>% filter(Month == "Mars")
+  ) 
+   
+  annot_data <- 1:nrow(annot_coords) %>% 
+    map_df( function(y) {
+      dff %>% 
+        filter(
+          Year == annot_coords[y,'year'] %>% unlist() &
+            Month %in% annot_coords[y,'month'] %>% unlist()
+        )
+    })
+  
+  plotSingleYear <- function(syear) {
+    p <- bg_chart (base_size = fontSize) + 
+      geom_xspline(
+        data = dff %>% filter(Year < syear),
+        aes(x = Month, y = Temperature, group = Year, colour = colour), 
+        size = 0.15, alpha  = 0.65
+      ) +  
+      geom_line(
+        data = mAverageByP,
+        aes(x = Month, y = monthlyAv, group = 1), 
+        size = 2.2, alpha  = 0.7, linetype = "dashed"
+      ) +
+      geom_xspline(
+        data = dff %>% filter(Year == syear),
+        aes(x = Month, y = Temperature, group = Year, colour = colour), 
+        size = 3, alpha  = 1
+      ) +
+      geom_text(
+        data = yearLabel %>% filter(Year == syear),
+        aes(x = x, y = y, label = Year, colour = colour),
+        family = font_rc, hjust = 0.5, size = fontSize * 1.3, fontface = "bold", #bold???
+        alpha = 0.9
+      ) +
+      theme(
+        plot.margin = margin(1, 5, 0, -4, "pt"),
+        panel.grid.major.y =  element_line(
+          color = "#c2c4d6", linetype = "dotted", size = 0.7)
+      ) +
+      geom_text(
+        data = moyenneMLabel, aes(x = x, y = y, label = label),
+        family = font_rc, hjust = 0.5, size = fontSize / 3,
+        vjust = -0.9, colour = "#666666"
+      ) +
+      geom_curve(
+        data = moyenneMLabel, size = fontSize / 20, 
+        colour = "#666666", alpha = 0.5,
+        aes(x = x, y = y, xend = Month, yend = monthlyAv - 0.1), 
+        curvature = -0.8,  
+        arrow = arrow(length = unit(0.015, "npc"), type = "closed")
+      ) +
+      scale_colour_identity()
+  }
+  
+  plots <- unique(dff$Year) %>% 
+    map(~ plotSingleYear(.x))
+  names(plots) <- unique(dff$Year)
+  
+  animation::saveVideo({
+    for( y in if(dev) (names(plots) %>% tail(16)) else names(plots)) {
+      cat("\t", y)
+      if(y %in% annot_text$year %>% unique()) {
+        dd <- annot_data %>% filter(Year == y)
+        dt <- annot_text[which(annot_text$year == y),]
+        yy <- plots[[y]] + 
+          geom_point(data = dd, 
+                     aes(x = Month, y = Temperature),
+                     fill = annot_colour,
+                     alpha = 0.35,
+                     size = fontSize / 2.5,
+                     stroke = 2, colour = annot_colour
+                     ) +
+          geom_text(data = dt, aes(x = x, y = y, label = label),
+                    hjust = 0, vjust = 1,
+                    family = font_rc, 
+                    size = fontSize / 3.6,
+                    fontface = "italic",
+                    lineheight = 0.9,
+                    colour = annotext_colour
+                    )
+        sapply(1:(dt %>% .$duration), function(x) print(yy)) %>% invisible()
+        
+      } else {
+        print(plots[[y]])  
+      }
+    }
+  }, video.name = outfile,
+  interval = animationSpeed,
+  ani.width = 620 * 1.6, ani.height = 680 * 1.6
+  )
+}
+
+```
+
+
+```{r shift 1864-1964 vs after}
+if(generateVidShift) {
+  
+  bluered <- tam_pal[1:2] #c("#2C3891", '#ae0404')
+  periods <- tibble(
+    start = c(1864, 1982),
+    end = c(1900, 2018)
+  ) %>% 
+    mutate(name = paste0(start, "-", end))
+  
+  fontSize <- 50
+  
+  df <- table %>% 
+    filter((Year >= periods$start[1] & Year <= periods$end[1]) | Year >= periods$start[2]) %>% 
+    mutate(
+      timeP = factor(ifelse(Year <= periods$end[1], periods$name[1], periods$name[2])),
+      colour = ifelse(timeP == periods$name[1], bluered[1], bluered[2])
+  )
+  mAverageByP <- df %>% 
+    group_by(timeP, Month) %>% 
+    summarise(monthlyPAv = mean(Temperature)) %>% 
+    ungroup() %>% 
+    mutate(colour = ifelse(timeP == periods$name[1], bluered[1], bluered[2]))
+  
+  shift <- mAverageByP %>% 
+    group_by(Month) %>% 
+    summarise(y0 = monthlyPAv[1], y1 = monthlyPAv[2]) %>% 
+    ungroup() %>% 
+    mutate(timeP = factor(periods$name[2], levels = periods$name))
+  
+  shift <- rbind(shift %>% 
+                   mutate(y1 = y0, timeP = periods$name[1]), shift) %>% 
+    mutate(timeP = as.factor(timeP))
+  
+  shiftLabel <- shift %>% 
+    mutate(
+      diff = y1 - y0,
+      label = ifelse(
+        diff == 0, "", paste0("+", formatC(diff, digits = 2), "°"))
+    )
+  
+  timePLabel <- tibble(
+    x = 7.15, y = 8.4, label = levels(df$timeP), 
+    timeP = factor(levels(df$timeP))) %>% 
+    mutate(colour = ifelse(timeP == periods$name[1], bluered[1], bluered[2]))
+  
+  moyenneMLabel <- cbind(
+    tibble(
+      x = 7.15, y = 4.4, 
+      label = paste0("moyenne de ", levels(df$timeP))),
+    mAverageByP %>% filter(Month == "Mars")
+  )
+  
+  p <- bg_chart (base_size = fontSize) + 
+    scale_colour_identity() +
+    geom_segment(
+      data = shift,
+      aes(x = Month, xend = Month, y = y0, yend = y1), 
+      size = fontSize / 2.5, colour = "#b30047", alpha = 0.6
+    ) +
+    geom_xspline(
+      data = df,
+      aes(x = Month, y = Temperature, group = Year, colour = colour), 
+      size = 0.3, alpha  = 0.9
+    ) +
+    geom_line(
+      data = mAverageByP,
+      aes(x = Month, y = monthlyPAv, group = 1, colour = colour),
+      size = fontSize / 10, linetype = "dashed"
+    ) +
+    geom_text(
+      data = shiftLabel, hjust = 0.5, vjust = 0, nudge_y = 0.45,
+      aes(x = Month, y = y1, label = label), 
+      size = fontSize / 3, colour = '#16040c', family = font_rc
+    ) +
+    geom_text(
+      data = timePLabel, 
+      aes(x = x, y = y, label = label, colour = colour),
+      family = font_rc, hjust = 0.5, size = fontSize * 1.1, fontface = "bold",
+      alpha = 0.9
+    ) +
+    geom_text(
+      data = moyenneMLabel, aes(x = x, y = y, label = label),
+      family = font_rc, hjust = 0.5, size = fontSize / 3,
+      vjust = -1.3, colour = "#666666"
+    ) +
+    geom_curve(
+      data = moyenneMLabel, size = fontSize / 20, 
+      colour = "#666666", alpha = 0.7,
+      aes(x = x, y = y, xend = Month, yend = monthlyPAv), 
+      curvature = -0.8,  arrow = arrow(length = unit(0.01, "npc"))
+    ) +
+    scale_x_discrete(name = "", position = "top", expand = c(0.04, 0.1))
+  
+  ap <- p + 
+    labs(title = "", subtitle = "") + 
+    transition_states(
+      timeP, transition_length = 400, state_length = 500, wrap = T
+    ) +
+    enter_fade() +
+    exit_fade()
+  
+  #vid <- animate(ap,renderer = ffmpeg_renderer())
+  vid <- animate(ap, width = 620 * 3, height = 680 * 3, fps = 600, 
+                 renderer = ffmpeg_renderer(
+                   options = list(pix_fmt = "yuv420p", loop = 0))
+  )
+  vid %>% save_animation(file = 
+                           paste0("animShift_GE_", 
+                                  paste0(periods$start, collapse = "_"), ".mp4"))  
+}
+
+```
+
+```{r move production graphics}
+if (cleanOutput) {
+  files <- c("basename_.*html", "js", ".*GE.mp4")
+
+  if (!dir.exists("output/bak")) {
+    dir.create("output/bak")
+  } else {
+    list.files("output/bak/", full.names = T, recursive = T) %>% file.remove()
+  }
+  ori.files <- list.files("output", full.names = T)[list.files("output") != "bak"]
+  file.copy(ori.files, to = "output/bak/", recursive = T)
+  unlink(ori.files, recursive = T)
+
+  files_tomove <- lapply(files, function(x) list.files(pattern = x)) %>% unlist()
+  file.copy(files_tomove, "output", recursive = T)
+  unlink(files_tomove, recursive = T)
+}
+```
+
+```{r linting}
+lintr::lint(knitr::current_input())
+```
