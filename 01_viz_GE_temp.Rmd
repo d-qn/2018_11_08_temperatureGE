@@ -145,7 +145,7 @@ if(generateVidAllYears) {
   annotext_colour <- '#737373'
   fontSize <- 35 #50 
   syear <- 2010
-  outfile <- if(dev) "dev_lastYears_GE.mp4" else "anim_EveryYear_GE.mp4"
+  outfile <- if(dev) "dev_lastYears_GE" else "anim_EveryYear_GE"
   
   annot_coords <- tibble(
     year =  c(2003, 2003,        2006, 2015, 2018),
@@ -262,6 +262,8 @@ annot_text$label <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 3
     map(~ plotSingleYear(.x))
   names(plots) <- unique(dff$Year)
   
+  
+  ## mobile version ##
   animation::saveVideo({
     for( y in if(dev) (names(plots) %>% tail(16)) else names(plots)) {
       cat("\t", y)
@@ -290,10 +292,46 @@ annot_text$label <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 3
         print(plots[[y]])  
       }
     }
-  }, video.name = outfile,
+  }, video.name = paste0(outfile, "_mb.mp4"),
   interval = animationSpeed,
-  ani.width = 620 * 1.6, ani.height = 680 * 1.6
+  ani.width = 620 * 1.6, ani.height = 680 * 2.2
   )
+  
+  
+  ## destkop version ##
+  animation::saveVideo({
+    for( y in if(dev) (names(plots) %>% tail(16)) else names(plots)) {
+      cat("\t", y)
+      if(y %in% annot_text$year %>% unique()) {
+        dd <- annot_data %>% filter(Year == y)
+        dt <- annot_text[which(annot_text$year == y),]
+        yy <- plots[[y]] + 
+          geom_point(data = dd, 
+                     aes(x = Month, y = Temperature),
+                     fill = annot_colour,
+                     alpha = 0.35,
+                     size = fontSize / 2.5,
+                     stroke = 2, colour = annot_colour
+                     ) +
+          geom_text(data = dt, aes(x = x, y = y, label = label),
+                    hjust = 0, vjust = 1,
+                    family = font_rc, 
+                    size = fontSize / 3.6,
+                    fontface = "italic",
+                    lineheight = 0.9,
+                    colour = annotext_colour
+                    )
+        sapply(1:(dt %>% .$duration), function(x) print(yy)) %>% invisible()
+        
+      } else {
+        print(plots[[y]])  
+      }
+    }
+  }, video.name = paste0(outfile, "_dk.mp4"),
+  interval = animationSpeed,
+  ani.width = 620 * 2.6, ani.height = 680 * 1.4
+  )
+  
 }
 
 ```
@@ -401,14 +439,22 @@ if(generateVidShift) {
     enter_fade() +
     exit_fade()
   
-  #vid <- animate(ap,renderer = ffmpeg_renderer())
-  vid <- animate(ap, width = 620 * 3, height = 680 * 3, fps = 600, 
+  ## mobile ##
+  vid_mb <- animate(ap, width = 620 * 3, height = 680 * 4, fps = 600, 
                  renderer = ffmpeg_renderer(
                    options = list(pix_fmt = "yuv420p", loop = 0))
   )
-  vid %>% save_animation(file = 
+  vid_mb %>% save_animation(file = 
                            paste0("animShift_GE_", 
-                                  paste0(periods$start, collapse = "_"), ".mp4"))  
+                                  paste0(periods$start, collapse = "_"), "_mb.mp4"))  
+  ## desktop ##
+  vid_dk <- animate(ap, width = 620 * 5, height = 680 * 3, fps = 600, 
+                 renderer = ffmpeg_renderer(
+                   options = list(pix_fmt = "yuv420p", loop = 0))
+  )
+  vid_dk %>% save_animation(file = 
+                           paste0("animShift_GE_", 
+                                  paste0(periods$start, collapse = "_"), "_dk.mp4"))  
 }
 
 ```
