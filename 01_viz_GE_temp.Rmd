@@ -329,7 +329,7 @@ annot_text$label <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 3
     }
   }, video.name = paste0(outfile, "_dk.mp4"),
   interval = animationSpeed,
-  ani.width = 620 * 2.6, ani.height = 680 * 1.4
+  ani.width = 620 * 3.2, ani.height = 680 * 1.8
   )
   
 }
@@ -434,13 +434,13 @@ if(generateVidShift) {
   ap <- p + 
     labs(title = "", subtitle = "") + 
     transition_states(
-      timeP, transition_length = 400, state_length = 500, wrap = T
+      timeP, transition_length = 440, state_length = 500, wrap = T
     ) +
     enter_fade() +
     exit_fade()
   
   ## mobile ##
-  vid_mb <- animate(ap, width = 620 * 3, height = 680 * 4, fps = 600, 
+  vid_mb <- animate(ap, width = 620 * 3.4, height = 680 * 4, fps = 600, 
                  renderer = ffmpeg_renderer(
                    options = list(pix_fmt = "yuv420p", loop = 0))
   )

@@ -12,7 +12,7 @@
     100% {
         opacity:1;
     }
-} 
+}
 
 @-webkit-keyframes blink {
     0% {
@@ -36,7 +36,7 @@
     100% {
         opacity:1;
     }
-} 
+}
 /* Opera and prob css3 final iteration */
 @keyframes blink {
     0% {
@@ -48,31 +48,30 @@
     100% {
         opacity:1;
     }
-} 
+}
 .blink-image {
     -moz-animation: blink normal 2s infinite ease-in-out; /* Firefox */
     -webkit-animation: blink normal 2s infinite ease-in-out; /* Webkit */
     -ms-animation: blink normal 2s infinite ease-in-out; /* IE */
     animation: blink normal 2s infinite ease-in-out; /* Opera and prob css3 final iteration */
-}     
-    
+}
+
 body {
   text-rendering: optimizeLegibility;
-  max-width: 660px;
 }
 
 body, h1, h4, h5, h6m .descr, td, table {
     font-family: 'Roboto Condensed', sans-serif;
 }
 
-.container {
+.viz {
     margin-top: 0vh; /*   !!!!!!!!!!!!!!!!!!!   manual hack  to reduce margin!!!!*/
 }
 
 #cite {
   font-weight: 300;
   font-size: 0.9em;
-  color: #a6a6a6; 
+  color: #a6a6a6;
   text-align:right;
   margin-right:5px;
   padding-bottom: 9px;
@@ -149,8 +148,8 @@ h4 {
   margin-top: 2px;
   margin-bottom: 3px;
   padding-top:0;
-  padding-bottom:2px; 
-  border-bottom:1px solid white; 
+  padding-bottom:2px;
+  border-bottom:1px solid white;
 }
 
 h5 {
@@ -175,7 +174,6 @@ a, a:visited {
     }
 }
 
-
 video {
   width: 100%    !important;
   height: auto   !important;
@@ -192,4 +190,12 @@ video {
 	left: 0;
 	width: 100%;
 	height: 100%;
+}
+
+/* bootstrap no padding
+https://stackoverflow.com/questions/19562903/remove-padding-from-columns-in-bootstrap-3
+*/
+.nopadding {
+   padding: 0 !important;
+   margin: 0 !important;
 }

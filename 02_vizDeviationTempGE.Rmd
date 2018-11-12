@@ -302,7 +302,7 @@ save_html(
          '&nbsp;<img class="blink-image" src="https://www.tdg.ch/extern/interactive_wch/tdg/assets/hand_interactive.png" width="30" align="top"> '
         ))),
           # h3(HTML("Durant les trente dernières années, les étés à Genève sont systématiquement plus chauds.")),
-        div(class = "graphic", hh),
+        div(class = "viz", hh),
         div(id = "cite", HTML("source: MétéoSuisse"))
     )), 
     file = "summerTemperatureDeviation_GE.html", libdir = "js")

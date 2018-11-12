@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+
+      <!-- Latest compiled and minified CSS -->
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+      <!-- jQuery library -->
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+      <!-- Latest compiled JavaScript -->
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+      
+    <link rel="stylesheet" href="videoWrapper.css" type="text/css" media="screen"/>
+      
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <script src="https://files.newsnetz.ch/scripts/dimension_watcher.js"></script>
+    <script>
+    DimensionWatcher.enableParentNotification(
+      function() {
+        return "100%"
+      },
+      function() {
+        return document.body.scrollHeight
+      }
+    );
+    </script>
+  </head>
+
+<body>
+    
+<div class="container">
+<div class="row">
+    <div class="col-xs-12 nopadding">
+        <h3>Le lent inéxorable réchauffement de Genève</h3>
+        <div class="descr">
+            Températures mensuelles de 1864 à septembre 2018 à Genève. Chaque année est représentée par une courbe.
+        </div>
+    </div>
+    
+    <div class="col-xs-12 hidden-sm hidden-md hidden-lg nopadding">  <!--Mobile-->
+        <video loop autoplay muted playsinline controlsList = "nodownload">
+        <!-- <source src="https://cfpodcast.newsnetz.tv/podcast/news/355257h.mp4" type="video/mp4"> -->
+        <source src="anim_EveryYear_GE_mb.mp4" type="video/mp4">
+        </video>
+    </div>
+    <div class="hidden-xs visible-sm visible-md visible-lg nopadding">
+        <video loop autoplay muted playsinline controlsList = "nodownload">
+        <!-- <source src="https://cfpodcast.newsnetz.tv/podcast/news/355257h.mp4" type="video/mp4"> -->
+        <source src="anim_EveryYear_GE_dk.mp4" type="video/mp4">
+        </video>
+    </div>
+    <div class="col-xs-12 nopadding">
+        <div id="cite">  Source: MétéoSuisse | Tribune de Genève
+        </div>
+    </div>
+</div>
+</div>
+</body>
+</html>
