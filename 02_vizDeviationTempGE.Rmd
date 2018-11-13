@@ -161,7 +161,7 @@ summer_ja %>%
       guide = guide_colourbar(title.hjust = 0, ticks.linewidth = 3)
     )
 
-  tiles_bare <- tiles + 
+  tiles_bare_dk <- tiles + 
     theme(
       legend.position = "none",
       axis.line  = element_blank(),
@@ -171,15 +171,24 @@ summer_ja %>%
       plot.margin = unit(c(-3, -4, -3.5, -4), "lines")
     )
   
-  jpeg("output/geneva_1753_2017_tiles_bare_wide.jpeg", width = 1000, height = 800, quality = 400)
-  print(tiles_bare)
-  dev.off()
-  jpeg("output/geneva_1753_2017_tiles_bare_long.jpeg", width = 700, height = 1000, quality = 400)
-  print(
-    tiles_bare + 
+  tiles_bare_mb <- tiles_bare_dk + 
       scale_x_continuous(trans= "reverse") + 
       coord_flip() + 
-      theme(plot.margin = unit(c(-4, -3, -5, -3), "lines")))
+      theme(plot.margin = unit(c(-4, -3, -5, -3), "lines"))
+  
+  jpeg("output/geneva_1753_2017_tiles_bare_wide.jpeg", width = 1000, height = 800, quality = 400)
+  print(tiles_bare_dk)
+  dev.off()
+  jpeg("output/geneva_1753_2017_tiles_bare_long.jpeg", width = 700, height = 1000, quality = 400)
+  print(tiles_bare_mb)
+  dev.off()
+  
+  png("output/geneva_1753_2017_tiles_walllpaper_mb.png", width = 414, height = 900, res = 1000)
+  print(tiles_bare_mb)
+  dev.off()
+  
+  png("output/geneva_1753_2017_tiles_walllpaper_dk.png", width = 1536, height = 800, res = 1000)
+  print(tiles_bare_dk)
   dev.off()
   
     
@@ -283,7 +292,7 @@ hh <- hchart(
       padding = 5,
       style = list(
         fontWeight = 300,
-        fontSize = "0.6em"
+        fontSize = "0.7em"
       )
   )
 

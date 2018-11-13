@@ -109,15 +109,17 @@ bg_chart <- function(base_size = 22) {
     labels = function(x) paste0(x,'°'), limits = ylim, 
     breaks = scales::pretty_breaks(n = 5)
   ) +
-  theme_tam(grid = 'X', base_size = base_size) +
+  theme_tam(grid = 'X', base_size = base_size, caption_size = base_size - 16) +
   theme(
+    plot.caption = element_text(colour = "#666666", margin = margin(0, 22, 24, 0, "pt")),
+    axis.ticks.length = unit(0.7, "lines"),
     axis.ticks.y = element_blank(),
     panel.background = element_blank(),
     panel.grid.major.x = element_blank(),
     panel.grid.minor = element_blank(),
     panel.grid.major.y =  element_line(
       color = "#c2c4d6", linetype = "dotted", size = 1.5),
-    plot.margin = margin(-6, 3, 0, -2, "pt"),
+    plot.margin = margin(-6, 3, 3, -2, "pt"),
     axis.line = element_blank()
   )
   #scale_colour_gradientn(colours = brewer.pal(7,"Reds"))
@@ -156,20 +158,21 @@ if(generateVidAllYears) {
     year = c(2003, 2006, 2015, 2016, 2017, 2018),
     duration = c(6 / animationSpeed, 3 / animationSpeed, 
                  4 / animationSpeed, 2/animationSpeed,  2/animationSpeed, 
-                 4 / animationSpeed),
+                 4.4 / animationSpeed),
     x = 0.7, 
     y = 24,
     label = c(
       "Genève 2003: records de température moyenne pour les mois de juin et août (23.7 & 23.6 °C). La canicule cause 975 morts en Suisse, 70'000 à travers l'Europe.",
-      "Genève 2006: nouveau record de température moyenne pour le mois de juillet, 23.7°C.",
-      "Genève 2015: nouveau record de température pour le mois de juillet, 24.2 °C et record de température enregistrée: 39.7°C.",
+      "Genève 2006: record de température moyenne pour le mois de juillet, 23.7°C.",
+      "Genève 2015: record de température pour le mois de juillet, 24.2 °C et record de température enregistrée: 39.7°C.",
       "Au niveau mondial, 2015, 2016 et 2017 représentent les années les plus chaudes jamais enregistrées.",
       "Au niveau mondial, 2015, 2016 et 2017 représentent les années les plus chaudes jamais enregistrées.",
-      "Genève 2018: records de température moyenne pour le mois de janvier, 6.0 °C et pour la période d'avril à juillet."
+      "Genève 2018: records de température moyenne pour le mois de janvier, 6.0 °C, et pour la période d'avril à juillet."
     )
   )
-annot_text$label <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 33), sep="", collapse="\n"))
-  
+annot_text$label_mb <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 33), sep="", collapse="\n"))
+annot_text$label_dk <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 50), sep="", collapse="\n"))
+
   mAverageByP <- table %>% 
     filter(Year >= referencePeriod[1] & Year <= referencePeriod[2]) %>% 
     group_by(Month) %>% 
@@ -239,7 +242,7 @@ annot_text$label <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 3
         alpha = 0.9
       ) +
       theme(
-        plot.margin = margin(1, 5, 0, -4, "pt"),
+        plot.margin = margin(1, 5, 2, -4, "pt"),
         panel.grid.major.y =  element_line(
           color = "#c2c4d6", linetype = "dotted", size = 0.7)
       ) +
@@ -255,7 +258,8 @@ annot_text$label <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 3
         curvature = -0.8,  
         arrow = arrow(length = unit(0.015, "npc"), type = "closed")
       ) +
-      scale_colour_identity()
+      scale_colour_identity() +
+      labs(caption = "Source: MétéoSuisse | Tribune de Genève | @duc_qn ")
   }
   
   plots <- unique(dff$Year) %>% 
@@ -278,7 +282,7 @@ annot_text$label <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 3
                      size = fontSize / 2.5,
                      stroke = 2, colour = annot_colour
                      ) +
-          geom_text(data = dt, aes(x = x, y = y, label = label),
+          geom_text(data = dt, aes(x = x, y = y, label = label_mb),
                     hjust = 0, vjust = 1,
                     family = font_rc, 
                     size = fontSize / 3.6,
@@ -297,7 +301,6 @@ annot_text$label <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 3
   ani.width = 620 * 1.6, ani.height = 680 * 2.2
   )
   
-  
   ## destkop version ##
   animation::saveVideo({
     for( y in if(dev) (names(plots) %>% tail(16)) else names(plots)) {
@@ -313,10 +316,10 @@ annot_text$label <- sapply(annot_text$label, function(lab) paste0(strwrap(lab, 3
                      size = fontSize / 2.5,
                      stroke = 2, colour = annot_colour
                      ) +
-          geom_text(data = dt, aes(x = x, y = y, label = label),
+          geom_text(data = dt, aes(x = x + 0.3, y = y, label = label_dk),
                     hjust = 0, vjust = 1,
                     family = font_rc, 
-                    size = fontSize / 3.6,
+                    size = fontSize / 3.3,
                     fontface = "italic",
                     lineheight = 0.9,
                     colour = annotext_colour
@@ -429,7 +432,8 @@ if(generateVidShift) {
       aes(x = x, y = y, xend = Month, yend = monthlyPAv), 
       curvature = -0.8,  arrow = arrow(length = unit(0.01, "npc"))
     ) +
-    scale_x_discrete(name = "", position = "top", expand = c(0.04, 0.1))
+    scale_x_discrete(name = "", position = "top", expand = c(0.04, 0.1)) + 
+    labs(caption = "Source: MétéoSuisse | Tribune de Genève | @duc_qn ")
   
   ap <- p + 
     labs(title = "", subtitle = "") + 
