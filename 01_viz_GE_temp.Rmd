@@ -28,7 +28,7 @@ output:
 download_meteoSuisseData <- F
 cleanOutput <- F
 
-generateVidAllYears <- T
+generateVidAllYears <- F
 generateVidShift <- T
 
 require(lintr)
