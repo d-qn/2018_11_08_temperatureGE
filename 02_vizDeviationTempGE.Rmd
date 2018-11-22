@@ -135,13 +135,18 @@ summer_ja %>%
 ```
 
 ```{r teaser heatmap, eval = T}
-  fontSize <- 20
+  fontSize <- 24
   
+  label.year <- yAv %>% 
+    filter(Year <  2018) %>% 
+  select(Year) %>% 
+  mutate(y = 9 )
+
   tiles <- yAv %>% 
     filter(Year <  2018) %>% 
   ggplot() +
   geom_tile(aes(x = Year, y = 10, fill = devAverage)) +
-  theme_tam(base_size = fontSize, grid = F) + 
+  theme_tam(base_size = fontSize, grid = F, plot_title_size = 27, subtitle_size = 23) + 
   theme(
     axis.line.y = element_blank(),
     axis.ticks.y = element_blank(),
@@ -183,26 +188,71 @@ summer_ja %>%
   print(tiles_bare_mb)
   dev.off()
   
-  png("output/geneva_1753_2017_tiles_walllpaper_mb.png", width = 414, height = 900, res = 1000)
+  png("output/geneva_1753_2017_tiles_walllpaper_mb.png", width = 414, height = 900, res = 300)
   print(tiles_bare_mb)
   dev.off()
   
-  png("output/geneva_1753_2017_tiles_walllpaper_dk.png", width = 1536, height = 800, res = 1000)
+  png("output/geneva_1753_2017_tiles_walllpaper_dk.png", width = 2200, height = 800, res = 300)
   print(tiles_bare_dk)
   dev.off()
   
     
-  tiles <- tiles + 
+  tiles_legended <- tiles + 
   scale_x_continuous(
     position = "top",
-    name = "", 
-    expand = c(0,0), breaks = scales::pretty_breaks(n = 16)
-    ) +
-  scale_y_continuous(expand = c(0,0)) 
+    expand = c(0,0), breaks = scales::pretty_breaks(n = 8)
+  ) +
+  scale_y_continuous(expand = c(0,0)) +
+  theme(
+    axis.title = element_blank(),
+    axis.line = element_blank(),
+    axis.text.y = element_blank(),
+    legend.position = "top",
+    legend.key.height = unit(fontSize / 22, "lines"),
+    legend.key.width = unit(4, "lines"),
+    legend.title = element_blank(),
+    legend.margin = margin(t = -0.5, b = -0.5, unit = "lines"),
+    legend.text = element_text(vjust = 0),
+    plot.margin = unit(c(1, 0.5, 0.05, 0.2), "lines")
+  ) +
+  labs(
+    title = "Écarts des températures annuelles à Genève de 1753 à 2017, avec la température moyenne de 1961-1990",
+  subtitle = "Chaque ligne représente une année", 
+  caption = "source: MétéoSuisse | Tribune de Genève")
 
-  jpeg("output/geneva_1753_2017_tiles_dk.jpeg", width = 1200, height = 1200, quality = 400)
-  print(tiles)
+
+  jpeg("output/geneva_1753_2017_tilesLegended_dk.jpeg", width = 1600, height = 600, quality = 500)
+  print(tiles_legended)
   dev.off()
+  
+  ## banner, with years only
+  tiles_banner <- tiles + 
+  scale_x_continuous(
+    position = "top",
+    expand = c(0,0), 
+    breaks = c(1800, 1900, 2000)
+  ) +
+  scale_y_continuous(expand = c(0,0)) +
+  theme(
+    axis.title = element_blank(),
+    axis.line = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.length = unit(-30, "pt"),
+    axis.text.x = element_text(vjust = -25),
+    legend.position = "none",
+    plot.margin = unit(c(0.1, 0.3, 0.05, 3), "lines")
+  )
+ tiles_banner 
+
+
+  jpeg("output/geneva_1753_2017_banner.jpeg", width = 2000, height = 1125, quality = 500)
+  print(tiles_banner)
+  dev.off()
+  
+  jpeg("output/geneva_1753_2017_teaser.jpeg", width = 1200, height = 675, quality = 500)
+  print(tiles_banner)
+  dev.off()
+  
   
   ### Vertical version for mobile #######
   tilesM <- yAv %>% 
@@ -239,11 +289,6 @@ summer_ja %>%
   print(tilesM)
   dev.off()
   
-  
-  # labs(
-  #   title = "Températures à Genève de 1753 à 2018,\nvoyez-vous une tendance?",
-  #   subtitle = "Ecarts des températures annuelles de Genève avec la moyenne 1961-1990"
-  #   )
 ```
 
 ```{r prod plot}
